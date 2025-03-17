@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    command: daphne -b 0.0.0.0 -p 7000 jbl_chat.asgi:application
+
+    volumes:
+      - .:/code
+    ports:
+      - "7000:7000"
+    depends_on:
+      - redis
+    environment:
+      - DJANGO_SETTINGS_MODULE=jbl_chat.settings
+      - REDIS_URL=redis://redis:6379
+
+  redis:
+    image: redis:alpine
+    restart: always
+    ports:
+      - "6379:6379"

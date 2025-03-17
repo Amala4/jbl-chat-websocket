@@ -1,0 +1,39 @@
+
+<!-- Chat Interface -->
+<div
+    id="chat-msg-div"
+    hx-ext="ws" ws-connect="/ws/chat/{{other_user.id}}/" 
+>
+    <div class="chat-header">{{ other_user.username }}</div>
+
+    <div id="messages" class="messages" hx-swap="beforeend scroll:bottom">
+        {% for message in messages %}
+            {% if message.sender == request.user %}
+                <!-- Sent Message -->
+                <div class="message sent">
+                    <div class="content">
+                    <div class="text">{{ message.content }}</div>
+                    <div class="timestamp">{{ message.timestamp }}</div>
+                    </div>
+                </div>
+            {% else %}
+                <!-- Received Message -->
+                <div class="message received">
+                    <div class="content">
+                    <div class="text">{{ message.content }}</div>
+                    <div class="timestamp">{{ message.timestamp }}</div>
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <form class="input-box" 
+        ws-send
+    >
+        {% csrf_token %}
+        <input type="text" name="content" class="form-control" placeholder="Type a message..." required id="messageInput">
+        <button type="submit" class="btn"><i class="fas fa-paper-plane"></i></button>
+    </form>
+</div>
+<!-- Chat Interface -->

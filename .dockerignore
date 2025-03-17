@@ -1,0 +1,11 @@
+.git
+.github
+.gitignore
+.editorconfig
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+Dockerfile
+.dockerignore
