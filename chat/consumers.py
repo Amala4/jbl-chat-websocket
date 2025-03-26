@@ -1,9 +1,17 @@
+
+from django.conf import settings
 import json
 import redis
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 
-redis_client = redis.Redis(host='localhost', port=6379, db=0)
+if settings.DEBUG:
+    redis_client = redis.Redis(host='localhost', port=6379, db=0)
+
+else:
+    redis_client = redis.Redis(host='redis', port=6379, db=0)
+
+
 
 class ChatConsumer(AsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
@@ -24,6 +32,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.chat = await self.get_or_create_chat(self.sender, self.receiver)
         self.chat_name = f"chat_{min(self.sender_id, self.receiver_id)}_{max(self.sender_id, self.receiver_id)}"
 
+       
         redis_client.set(self.sender_id, self.channel_name)
 
         await self.accept()
@@ -33,7 +42,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
-        message = text_data_json['content']
+        message = text_data_json.get('content', '').strip()
+
+        if not message:
+            return
 
         # Save the message to the database
         message_obj = await self.create_message(self.chat, self.sender, self.receiver, message)
@@ -49,6 +61,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     'type': 'handle_incoming_message',
                     'message': message,
                     'timestamp': timestamp_str,
+                    'sender_id': self.sender_id,
                 }
             )
         else:
@@ -73,6 +86,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def handle_incoming_message(self, event):
         message = event['message']
         timestamp = event['timestamp']
+        sender_id = event.get('sender_id')
+        if str(sender_id) != str(self.receiver_id):
+            return 
+
         html_message = (
             f'<div hx-swap-oob="beforeend:#messages">'
             f'<div class="message received">'
@@ -106,4 +123,3 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def create_message(self, chat, sender, receiver, content):
         from .models import Message
         return Message.objects.create(chat=chat, sender=sender, receiver=receiver, content=content)
-
